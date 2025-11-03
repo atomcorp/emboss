@@ -1,0 +1,7 @@
+# Readme Emboss
+
+```
+magick -define jpeg:size=814x1000 Downloads/apple.png -thumbnail '248x248>' -background white -gravity center -extent 248x248 apple_pad.png
+```
+
+Format image
