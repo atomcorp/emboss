@@ -2,16 +2,19 @@ import "./style.css";
 
 import appleImage from "./apple_pad.png?url";
 
-const width = 248;
-const height = 248;
+const width = 256;
+const height = 256;
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <canvas id="canvas" height="${height}" width="${width}"></canvas>
 `;
 
-// first lets draw a canvas with 24 horizontal lines
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d")!;
+const ctx = canvas.getContext("2d");
+if (!ctx) {
+  throw new Error("No canvas element found");
+}
+
 ctx.strokeStyle = "black";
 // for (let i = 0; i < 24; i++) {
 //   const y = (i + 0.5) * (height / 24);
@@ -21,60 +24,64 @@ ctx.strokeStyle = "black";
 //   ctx.stroke();
 // }
 
-const offscreen = new OffscreenCanvas(248, 248);
+const offscreen = new OffscreenCanvas(width, height);
 const offscreenCtx = offscreen.getContext("2d")!;
 
 // lets get the ./apple_pad.png imagedata
 const img = new Image();
 img.src = appleImage;
 img.onload = () => {
-  offscreenCtx.drawImage(img, 0, 0, width, height);
+  setInterval(() => {
+    ctx.clearRect(0, 0, width, height);
+    offscreenCtx.translate(128, 128);
+    offscreenCtx.rotate((2 * Math.PI) / 180);
+    offscreenCtx.translate(-128, -128);
 
-  const imageData = offscreenCtx.getImageData(0, 0, width, height);
+    offscreenCtx.drawImage(img, 0, 0, width, height);
 
-  const rowLength = imageData.width * 4; // 4 bytes per pixel (RGBA)
-  // now we will loop every 24 lines, settings every pixel to black unless it is already no white
-  let isUp = false;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const index = (y * width + x) * 4;
-      const indexRow = Math.floor(index / rowLength);
+    const imageData = offscreenCtx.getImageData(0, 0, width, height);
+    renderToCanvas(imageData);
+  }, 16);
+};
 
-      if (indexRow % 24 === 0) {
-        // is pixel not white?
-        const r = imageData.data[index];
-        const g = imageData.data[index + 1];
-        const b = imageData.data[index + 2];
-        const a = imageData.data[index + 3];
-
-        if (r !== 255 || g !== 255 || b !== 255) {
-          isUp = isUp;
-        } else {
-          isUp = false;
+const renderToCanvas = (imageData: ImageData) => {
+  const lineInterval = height / 32;
+  const colInterval = 4;
+  let data = [];
+  for (let row = 0; row < height; row++) {
+    if (row % lineInterval === 0) {
+      const rowData = [];
+      let col = 0;
+      let setInside = false;
+      while (col < width) {
+        col += colInterval;
+        const pixel = (row * width + col) * 4;
+        // rowData.push(imageData.data[pixel]);
+        const isPixelBlack = imageData.data[pixel] < 250; // is "R" white, not very resiliant
+        if (isPixelBlack && !setInside) {
+          setInside = true;
+        } else if (!isPixelBlack && setInside) {
+          setInside = false;
         }
 
-        if (!isUp) {
-          // make the pixel red
-          imageData.data[index] = 255;
-          imageData.data[index + 1] = 0;
-          imageData.data[index + 2] = 0;
-          imageData.data[index + 3] = 255; // fully opaque
-        } else {
-          // make the pixel black
-          imageData.data[index] = 0;
-          imageData.data[index + 1] = 0;
-          imageData.data[index + 2] = 0;
-          imageData.data[index + 3] = 0; // fully opaque
-        }
-      } else {
-        isUp = false;
-        imageData.data[index] = 255;
-        imageData.data[index + 1] = 255;
-        imageData.data[index + 2] = 255;
-        imageData.data[index + 3] = 255;
+        rowData.push(setInside ? 1 : 0);
       }
+      data.push(rowData);
     }
   }
-  // and put the image data back to the canvas
-  ctx.putImageData(imageData, 0, 0);
+
+  data.forEach((rowData, i) => {
+    ctx.beginPath();
+    const lineHeight = i * lineInterval + lineInterval * 0.5;
+    ctx.moveTo(0, lineHeight);
+    rowData.forEach((isEmbossed, i) => {
+      const col = i * colInterval + 4;
+      if (!isEmbossed) {
+        ctx.lineTo(col, lineHeight);
+      } else {
+        ctx.lineTo(col, lineHeight - lineInterval * 0.75);
+      }
+    });
+    ctx.stroke();
+  });
 };
