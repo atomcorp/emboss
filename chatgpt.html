@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bitmap Brothers Hand (Canvas)</title>
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      canvas {
+        border: 1px solid #000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="handCanvas" width="500" height="500"></canvas>
+
+    <script>
+      const canvas = document.getElementById("handCanvas");
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Approximate hand outline (based on logo proportions)
+      const handOutline = [
+        { x: 150, y: 400 },
+        { x: 140, y: 320 },
+        { x: 150, y: 250 },
+        { x: 180, y: 210 }, // base of thumb
+        { x: 200, y: 170 },
+        { x: 230, y: 150 }, // thumb tip
+        { x: 260, y: 180 },
+        { x: 280, y: 220 },
+        { x: 310, y: 200 }, // finger 1 base
+        { x: 320, y: 160 },
+        { x: 340, y: 140 }, // finger 1 tip
+        { x: 360, y: 160 },
+        { x: 370, y: 200 },
+        { x: 390, y: 180 }, // finger 2 base
+        { x: 400, y: 150 },
+        { x: 420, y: 130 }, // finger 2 tip
+        { x: 440, y: 160 },
+        { x: 440, y: 190 },
+        { x: 460, y: 200 },
+        { x: 470, y: 170 },
+        { x: 490, y: 150 }, // finger 3 tip
+        { x: 500, y: 180 },
+        { x: 490, y: 230 },
+        { x: 460, y: 300 },
+        { x: 440, y: 370 },
+        { x: 410, y: 420 },
+        { x: 150, y: 400 },
+      ];
+
+      // Function: check if a point is inside hand (ray casting)
+      function pointInPolygon(x, y, poly) {
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+          const xi = poly[i].x,
+            yi = poly[i].y;
+          const xj = poly[j].x,
+            yj = poly[j].y;
+          const intersect =
+            yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+          if (intersect) inside = !inside;
+        }
+        return inside;
+      }
+
+      // Draw horizontal line set
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#000";
+
+      for (let y = 100; y <= 450; y += 10) {
+        ctx.beginPath();
+        for (let x = 100; x <= 500; x += 3) {
+          let offsetY = y;
+          if (pointInPolygon(x, y, handOutline)) {
+            offsetY += 2; // create the embossed “dip” effect inside the hand
+          }
+          if (x === 100) ctx.moveTo(x, offsetY);
+          else ctx.lineTo(x, offsetY);
+        }
+        ctx.stroke();
+      }
+    </script>
+  </body>
+</html>

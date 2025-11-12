@@ -1,6 +1,68 @@
 import "./style.css";
 
-import appleImage from "./apple_pad.png?url";
+import appleImage from "../images/apple_pad.png?url";
+import img1 from "../output/foo-031.png";
+import img2 from "../output/foo-032.png";
+import img3 from "../output/foo-033.png";
+import img4 from "../output/foo-034.png";
+import img5 from "../output/foo-035.png";
+import img6 from "../output/foo-036.png";
+import img7 from "../output/foo-037.png";
+import img8 from "../output/foo-038.png";
+import img9 from "../output/foo-039.png";
+import img10 from "../output/foo-040.png";
+import img11 from "../output/foo-041.png";
+import img12 from "../output/foo-042.png";
+import img13 from "../output/foo-043.png";
+import img14 from "../output/foo-044.png";
+import img15 from "../output/foo-045.png";
+import img16 from "../output/foo-046.png";
+import img17 from "../output/foo-047.png";
+
+const imgSrcs = [
+  img1,
+  img2,
+  img3,
+  img4,
+  img5,
+  img6,
+  img7,
+  img8,
+  img9,
+  img10,
+  img11,
+  img12,
+  img13,
+  img14,
+  img15,
+  img16,
+  img17,
+];
+const promises = [];
+const imgs = imgSrcs.map((imgsrc) => {
+  const img = new Image();
+  img.src = imgsrc;
+  return img;
+});
+
+function preloadImages() {
+  const promises = [];
+  const images: HTMLImageElement[] = [];
+  const number_of_urls = imgSrcs.length;
+
+  for (let i = 0; i < number_of_urls; i++) {
+    const img = new Image();
+    images.push(img);
+    promises.push(
+      new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      })
+    );
+    img.src = imgSrcs[i];
+  }
+  return Promise.all(promises).then(() => images);
+}
 
 const width = 256;
 const height = 256;
@@ -16,55 +78,45 @@ if (!ctx) {
 }
 
 ctx.strokeStyle = "black";
-// for (let i = 0; i < 24; i++) {
-//   const y = (i + 0.5) * (height / 24);
-//   ctx.beginPath();
-//   ctx.moveTo(0, y);
-//   ctx.lineTo(width, y);
-//   ctx.stroke();
-// }
 
 const offscreen = new OffscreenCanvas(width, height);
 const offscreenCtx = offscreen.getContext("2d")!;
 
-// lets get the ./apple_pad.png imagedata
-const img = new Image();
-img.src = appleImage;
-img.onload = () => {
+preloadImages().then((images) => {
+  let index = 0;
+  console.log(images);
   setInterval(() => {
     ctx.clearRect(0, 0, width, height);
-    offscreenCtx.translate(128, 128);
-    offscreenCtx.rotate((2 * Math.PI) / 180);
-    offscreenCtx.translate(-128, -128);
-
-    offscreenCtx.drawImage(img, 0, 0, width, height);
-
+    offscreenCtx.clearRect(0, 0, width, height);
+    offscreenCtx.drawImage(images[index], 0, 0, width, height);
     const imageData = offscreenCtx.getImageData(0, 0, width, height);
     renderToCanvas(imageData);
-  }, 16);
-};
+    if (index < images.length - 1) {
+      index++;
+    } else {
+      index = 0;
+    }
+  }, 200);
+});
 
 const renderToCanvas = (imageData: ImageData) => {
+  // how many lines
   const lineInterval = height / 32;
+  // how many pixels across we test
   const colInterval = 4;
+  // we are checking pixels in the image to see if they are transparent or not
   let data = [];
   for (let row = 0; row < height; row++) {
     if (row % lineInterval === 0) {
       const rowData = [];
       let col = 0;
-      let setInside = false;
       while (col < width) {
         col += colInterval;
         const pixel = (row * width + col) * 4;
-        // rowData.push(imageData.data[pixel]);
-        const isPixelBlack = imageData.data[pixel] < 250; // is "R" white, not very resiliant
-        if (isPixelBlack && !setInside) {
-          setInside = true;
-        } else if (!isPixelBlack && setInside) {
-          setInside = false;
-        }
 
-        rowData.push(setInside ? 1 : 0);
+        const isPixelBlack = imageData.data[pixel + 3] === 255;
+
+        rowData.push(isPixelBlack ? 1 : 0);
       }
       data.push(rowData);
     }
@@ -75,7 +127,7 @@ const renderToCanvas = (imageData: ImageData) => {
     const lineHeight = i * lineInterval + lineInterval * 0.5;
     ctx.moveTo(0, lineHeight);
     rowData.forEach((isEmbossed, i) => {
-      const col = i * colInterval + 4;
+      const col = i * colInterval + colInterval;
       if (!isEmbossed) {
         ctx.lineTo(col, lineHeight);
       } else {
