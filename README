@@ -39,6 +39,10 @@ magick tmp/vids/output-yellow/foo-061.png \( +clone -colorspace HSL -channel G -
 
 ```
 
+```
+convert input.jpg -rotate 90 out.jpg
+```
+
 gbp sign
 ᛗ
 

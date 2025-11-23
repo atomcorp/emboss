@@ -2,13 +2,10 @@ import { createCanvas, loadImage, ImageData, Image } from "canvas";
 
 import { readdir } from "node:fs/promises";
 
-const width = 512;
-const height = 512;
+const width = 256;
+const height = 256;
 
-const canvas = createCanvas(width, height);
-const ctx = canvas.getContext("2d");
-
-const images = await readdir("output");
+const images = await readdir("final");
 
 const imgSrcs = images.sort();
 
@@ -20,38 +17,44 @@ function preloadImages() {
   const number_of_urls = imgSrcs.length;
 
   for (let i = 0; i < number_of_urls; i++) {
-    promises.push(loadImage(`output/${imgSrcs[0]}`));
+    promises.push(loadImage(`final/${imgSrcs[i]}`));
   }
   return Promise.all(promises);
 }
 
 const main = async () => {
   preloadImages().then(async (images) => {
-    const imageLinesData: (0 | 1)[][][] = [];
+    const imageLinesData: bigint[][] = [];
     images.forEach((image) => {
       offscreenCtx.clearRect(0, 0, width, height);
       offscreenCtx.drawImage(image, 0, 0, width, height);
       const imageData = offscreenCtx.getImageData(0, 0, width, height);
       const lineData = renderToCanvas(imageData);
-      imageLinesData.push(lineData);
+      imageLinesData.push(lineData.map((lines) => bitsToBigInt(lines)));
     });
+
     await Bun.write(
-      "scripts/test.json",
-      JSON.stringify(imageLinesData, null, 2)
+      "public/imageDataSmall.json",
+      JSON.stringify(imageLinesData, replacer)
     );
   });
 };
+
 main();
-// loadImage(`output/${sortedImages[0]}`).then((image) => {
-//   //   console.log(image);
-//   offscreenCtx.clearRect(0, 0, width, height);
-//   offscreenCtx.drawImage(image, 0, 0, width, height);
-//   const imageData = offscreenCtx.getImageData(0, 0, width, height);
-//   const lineData = renderToCanvas(imageData);
-// });
+
+const replacer = (key, value) =>
+  typeof value === "bigint" ? value.toString() : value;
+
+function bitsToBigInt(bits: (1 | 0)[]) {
+  let value = 0n;
+  for (const bit of bits) {
+    value = (value << 1n) | BigInt(bit);
+  }
+  return value; // stores all 64 bits
+}
 
 const renderToCanvas = (imageData: ImageData) => {
-  // how many lines
+  // how many lines - IMPORTANT this locks what the FE can produce
   const lineInterval = height / 32;
   // how many pixels across we test
   const colInterval = 4;
@@ -72,21 +75,6 @@ const renderToCanvas = (imageData: ImageData) => {
       data.push(rowData);
     }
   }
-
-  data.forEach((rowData, i) => {
-    ctx.beginPath();
-    const lineHeight = i * lineInterval + lineInterval * 0.5;
-    ctx.moveTo(0, lineHeight);
-    rowData.forEach((isEmbossed, i) => {
-      const col = i * colInterval + colInterval;
-      if (!isEmbossed) {
-        ctx.lineTo(col, lineHeight);
-      } else {
-        ctx.lineTo(col, lineHeight - lineInterval * 0.75);
-      }
-    });
-    ctx.stroke();
-  });
 
   return data;
 };
