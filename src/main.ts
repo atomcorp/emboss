@@ -1,49 +1,8 @@
 import "./style.css";
 
 import appleImage from "../images/apple_pad.png?url";
-import img1 from "../output/foo-031.png";
-import img2 from "../output/foo-032.png";
-import img3 from "../output/foo-033.png";
-import img4 from "../output/foo-034.png";
-import img5 from "../output/foo-035.png";
-import img6 from "../output/foo-036.png";
-import img7 from "../output/foo-037.png";
-import img8 from "../output/foo-038.png";
-import img9 from "../output/foo-039.png";
-import img10 from "../output/foo-040.png";
-import img11 from "../output/foo-041.png";
-import img12 from "../output/foo-042.png";
-import img13 from "../output/foo-043.png";
-import img14 from "../output/foo-044.png";
-import img15 from "../output/foo-045.png";
-import img16 from "../output/foo-046.png";
-import img17 from "../output/foo-047.png";
-
-const imgSrcs = [
-  img1,
-  img2,
-  img3,
-  img4,
-  img5,
-  img6,
-  img7,
-  img8,
-  img9,
-  img10,
-  img11,
-  img12,
-  img13,
-  img14,
-  img15,
-  img16,
-  img17,
-];
-const promises = [];
-const imgs = imgSrcs.map((imgsrc) => {
-  const img = new Image();
-  img.src = imgsrc;
-  return img;
-});
+import imgSrcs from "./images";
+import imageData from "./imageData";
 
 function preloadImages() {
   const promises = [];
@@ -73,6 +32,20 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d");
+
+function bitsToBigInt(bits: number[]) {
+  let value = 0n;
+  for (const bit of bits) {
+    value = (value << 1n) | BigInt(bit);
+  }
+  return value; // stores all 64 bits
+}
+
+function getAllBitsFast(x: bigint) {
+  let s = x.toString(2).padStart(64, "0");
+  return Array.from(s, (c) => Number(c));
+}
+
 if (!ctx) {
   throw new Error("No canvas element found");
 }
@@ -84,19 +57,28 @@ const offscreenCtx = offscreen.getContext("2d")!;
 
 preloadImages().then((images) => {
   let index = 0;
-  console.log(images);
-  setInterval(() => {
+  const imageLinesData = [];
+  console.log(images.length);
+  for (let index = 0; index < images.length; index++) {
+    // const element = array[index];
+
+    // setInterval(() => {
     ctx.clearRect(0, 0, width, height);
     offscreenCtx.clearRect(0, 0, width, height);
     offscreenCtx.drawImage(images[index], 0, 0, width, height);
     const imageData = offscreenCtx.getImageData(0, 0, width, height);
-    renderToCanvas(imageData);
+    const lineData = renderToCanvas(imageData);
+    console.log(index);
+    imageLinesData.push(lineData.map((lines) => bitsToBigInt(lines)));
     if (index < images.length - 1) {
-      index++;
+      // index++;
     } else {
-      index = 0;
+      // index = 0;
     }
-  }, 200);
+    // }, 120);
+  }
+
+  console.log(imageLinesData.length);
 });
 
 const renderToCanvas = (imageData: ImageData) => {
@@ -136,4 +118,6 @@ const renderToCanvas = (imageData: ImageData) => {
     });
     ctx.stroke();
   });
+
+  return data;
 };
