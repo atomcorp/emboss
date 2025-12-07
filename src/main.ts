@@ -1,6 +1,6 @@
 import "./style.css";
 
-import imageData from "../public/imageDataSmall.json";
+import imageData from "../src/imageDataSmall.json";
 
 const animationId = "animationId";
 const width = 256;
