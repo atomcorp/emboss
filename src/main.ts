@@ -20,9 +20,27 @@ function getAllBitsFast(x: bigint) {
 
 ctx.strokeStyle = "black";
 
+// nothing special, justv ignore 1 bits that are on there own,
+const cleanBits = (line: number[]) => {
+  return line.map((isEmbossed, i) => {
+    const prevEmbossed = line[i - 1];
+    const nextIsEmbossed = line[i + 1];
+    if (prevEmbossed === 0 && nextIsEmbossed === 0) {
+      return 0;
+    }
+    if (prevEmbossed === 0 && nextIsEmbossed === undefined) {
+      return 0;
+    }
+    if (nextIsEmbossed === 0 && prevEmbossed === undefined) {
+      return 0;
+    }
+    return isEmbossed;
+  });
+};
+
 // convert: string => bigint => [1,0,0,0,..1]
 const images = imageData.map((value) =>
-  value.map((bigIntString) => getAllBitsFast(BigInt(bigIntString)))
+  value.map((bigIntString) => cleanBits(getAllBitsFast(BigInt(bigIntString))))
 );
 
 const run = () => {
